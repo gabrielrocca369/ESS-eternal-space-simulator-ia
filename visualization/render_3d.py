@@ -50,6 +50,10 @@ class Renderer:
         # Renderiza as estrelas de fundo
         self.draw_starfield()
 
+        # **Adicionado para depuração**
+        total_objects = sum(len(objects) for objects in space.sectors.values())
+        print(f"Total de objetos para renderizar: {total_objects}")
+
         # Renderiza os objetos celestiais em todos os setores
         for sector_coords, objects in space.sectors.items():
             for obj in objects:
@@ -71,6 +75,9 @@ class Renderer:
 
     def draw_object(self, obj):
         """Desenha um objeto celestial como planeta, estrela ou buraco negro."""
+        # **Adicionado para depuração**
+        print(f"Desenhando objeto {obj.obj_type} na posição {obj.position}")
+
         glPushMatrix()  # Salva a matriz atual para restaurá-la mais tarde
         # Posiciona o objeto no espaço
         glTranslatef(float(obj.position[0]), float(obj.position[1]), float(obj.position[2]))
@@ -84,7 +91,7 @@ class Renderer:
             glColor3f(0.5, 0.0, 0.5)  # Roxo para buracos negros
 
         # Aumenta o tamanho dos objetos na renderização
-        render_size = obj.size / 500.0  # Ajuste este valor para controlar o tamanho na tela
+        render_size = obj.size / 50.0  # Ajuste este valor para controlar o tamanho na tela
         self.draw_sphere(render_size, 20, 20)
 
         glPopMatrix()  # Restaura a matriz
@@ -114,7 +121,7 @@ class Renderer:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
         # Desenha um cubo para representar a nave
-        self.draw_cube(40.0)
+        self.draw_cube(100.0)
         glPopMatrix()
 
     def draw_cube(self, size):

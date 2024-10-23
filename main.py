@@ -94,7 +94,7 @@ def start_simulation():
     try:
         # Inicializa o pygame
         pygame.init()
-        display = (800, 600)
+        display = (1280, 720)  # Alterado para resolução 720p
         screen = pygame.display.set_mode(display)
         pygame.display.set_caption("Eternal Space Simulator")
 
@@ -134,7 +134,7 @@ def start_simulation():
         glViewport(0, 0, display[0], display[1])
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(90, (display[0] / display[1]), 0.1, 100000.0)
+        gluPerspective(75, (display[0] / display[1]), 0.1, 400000.0)  # Campo de visão ajustado para 75
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         glClearColor(0.1, 0.1, 0.1, 1.0)
@@ -151,7 +151,7 @@ def start_simulation():
 
         # Inicializa o universo e a nave
         space = Space()
-        spaceship = Spaceship(max_speed=100)
+        spaceship = Spaceship(max_speed=50000)
 
         # Inicializa o motor de renderização e a câmera
         renderer = Renderer()
@@ -177,7 +177,6 @@ def start_simulation():
                             running = False
                             start_simulation()
                             return  # Encerra o loop atual
-                    # Outros eventos de teclado podem ser tratados aqui se necessário
 
             # Captura os inputs do teclado
             keys = pygame.key.get_pressed()
@@ -191,7 +190,10 @@ def start_simulation():
             space.update(spaceship)
             spaceship.update(delta_time, keys)  # Passa delta_time e keys
 
-            # A câmera segue a nave
+            # Atualiza a rotação da câmera
+            camera.update_camera_rotation(keys, delta_time)
+
+            # A câmera segue a nave com suavidade
             camera.follow_target(spaceship.position, spaceship.direction)
 
             # Renderiza o estado atual do universo, da nave e da câmera

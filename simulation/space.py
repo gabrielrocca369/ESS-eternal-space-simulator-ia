@@ -17,20 +17,20 @@ class CelestialObject:
         pass  # Implementar renderização do objeto
 
 class Space:
-    SECTOR_SIZE = 50000  # Aumentamos o tamanho do setor para ver uma área maior do espaço
+    SECTOR_SIZE = 50000  # Tamanho do setor
     OBJECT_TYPES = ['planet', 'star', 'black_hole']  # Tipos de objetos celestiais
-    MIN_DISTANCE_TO_GENERATE_SECTOR = 25000  # Ajustado de acordo com o novo tamanho do setor
     GRAVITY_INFLUENCE_RADIUS = 10000  # Raio de influência gravitacional dos objetos
 
     def __init__(self):
         self.sectors = {}  # Inicializa o dicionário de setores gerados
-        self.max_active_sectors = 4  # Quantidade máxima de setores ativos no universo
+        self.max_active_sectors = 5  # Quantidade máxima de setores ativos no universo
         self.generate_sector(0, 0, 0)  # Gera o setor inicial onde a nave começa
 
     def generate_objects_in_sector(self, sector_coords):
         """Gera objetos celestiais dentro de um setor."""
         objects = []
-        num_objects = random.randint(5, 20)  # Número de objetos por setor
+        num_objects = random.randint(10, 30)  # Ajuste o número de objetos por setor
+        print(f"Gerando {num_objects} objetos no setor {sector_coords}")
         sector_position = (
             sector_coords[0] * self.SECTOR_SIZE,
             sector_coords[1] * self.SECTOR_SIZE,
@@ -38,17 +38,18 @@ class Space:
         )
         for _ in range(num_objects):
             obj_type = random.choice(self.OBJECT_TYPES)
-            # Posiciona objetos mais afastados do centro do setor
-            local_position = Helpers.random_position(-self.SECTOR_SIZE / 2, self.SECTOR_SIZE / 2)
+            # Posiciona objetos próximos ao centro do setor
+            local_position = Helpers.random_position(-self.SECTOR_SIZE / 4, self.SECTOR_SIZE / 4)
             position = (
                 sector_position[0] + local_position[0],
                 sector_position[1] + local_position[1],
                 sector_position[2] + local_position[2]
             )
             mass = random.uniform(1e15, 1e18)  # Massa dos objetos
-            size = random.uniform(2000, 8000)  # Tamanho dos objetos
+            size = random.uniform(8000, 80000)  # Tamanho dos objetos
 
             obj = CelestialObject(obj_type, position, mass, size)
+            print(f"Criado objeto {obj.obj_type} na posição {obj.position}")
             objects.append(obj)
 
         return objects
@@ -58,7 +59,7 @@ class Space:
         if (x, y, z) not in self.sectors:
             sector_objects = self.generate_objects_in_sector((x, y, z))
             self.sectors[(x, y, z)] = sector_objects
-            print(f"Generated sector at ({x}, {y}, {z}) with {len(sector_objects)} objects")
+            print(f"Setor gerado em ({x}, {y}, {z}) com {len(sector_objects)} objetos")
 
     def get_current_sector(self, spaceship_position):
         """Calcula em qual setor a nave está com base na sua posição."""
@@ -70,6 +71,7 @@ class Space:
     def update(self, spaceship):
         """Atualiza os objetos no universo e aplica gravidade na nave."""
         current_sector = self.get_current_sector(spaceship.position)
+        print(f"Setor atual da nave: {current_sector}")
 
         # Gera o setor atual se ainda não foi gerado
         if current_sector not in self.sectors:
@@ -78,6 +80,11 @@ class Space:
         # Limitar a quantidade de setores ativos para manter o desempenho
         if len(self.sectors) > self.max_active_sectors:
             self.remove_old_sectors(current_sector)
+
+        # Imprime os setores ativos e quantos objetos há em cada um
+        print(f"Setores ativos: {list(self.sectors.keys())}")
+        for sector_coords, objects in self.sectors.items():
+            print(f"Setor {sector_coords} tem {len(objects)} objetos")
 
         # Aplica forças gravitacionais na nave somente de objetos próximos
         for sector_coords, objects in self.sectors.items():
@@ -120,4 +127,4 @@ class Space:
 
         for sector in sectors_to_remove:
             del self.sectors[sector]
-            print(f"Removed sector at {sector}")
+            print(f"Setor removido em {sector}")
