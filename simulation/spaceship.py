@@ -3,7 +3,8 @@ from simulation.physics import Physics
 import math
 
 class Spaceship:
-    def __init__(self, max_speed=80000, mass=2000):
+    def __init__(self, name, max_speed=80000, mass=2000):
+        self.name = name  # Nome do jogador, exibido sobre a nave
         self.position = [0.0, 0.0, 0.0]       # Posição inicial da nave no espaço 3D
         self.velocity = [0.0, 0.0, 0.0]       # Velocidade inicial da nave
         self.acceleration = [0.0, 0.0, 0.0]   # Aceleração inicial da nave
@@ -117,3 +118,11 @@ class Spaceship:
             self.velocity[1] + drag_force[1] * time_step,
             self.velocity[2] + drag_force[2] * time_step
         ]
+
+    def draw_name(self, renderer, camera):
+        """Desenha o nome do jogador acima da nave."""
+        # Defina a posição ligeiramente acima da nave para o texto
+        name_position = [self.position[0], self.position[1] + 200.0, self.position[2]]
+        
+        # Renderiza o nome do jogador
+        renderer.draw_text_3d(self.player_name, name_position, camera)

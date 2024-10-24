@@ -1,6 +1,7 @@
 import pygame
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 import math  # Import necessário para cálculos matemáticos
 import random  # Import necessário para gerar o starfield
 
@@ -47,10 +48,13 @@ class Renderer:
         camera_params = camera.get_view_matrix()
         gluLookAt(*camera_params)
 
+        # Verifica se a câmera está posicionada corretamente
+        print(f"Câmera: {camera_params}")
+
         # Renderiza as estrelas de fundo
         self.draw_starfield()
 
-        # **Adicionado para depuração**
+        # Verifica se há objetos para renderizar
         total_objects = sum(len(objects) for objects in space.sectors.values())
         print(f"Total de objetos para renderizar: {total_objects}")
 
@@ -60,7 +64,13 @@ class Renderer:
                 self.draw_object(obj)
 
         # Renderiza a nave espacial
-        self.draw_spaceship(spaceship)
+        self.draw_spaceship(spaceship, camera)
+
+        # Renderiza o nome do jogador sobre a nave
+        self.draw_text_3d(spaceship.name, spaceship.position, camera)
+
+        # Atualiza a tela
+        pygame.display.flip()
 
     def draw_starfield(self):
         """Desenha as estrelas de fundo."""
@@ -110,7 +120,7 @@ class Renderer:
             glEnd()
 
         # Aumenta o tamanho dos objetos na renderização
-        render_size = obj.size / 50.0  # Ajuste este valor para controlar o tamanho na tela
+        render_size = obj.size / 100.0  # Ajuste este valor para controlar o tamanho na tela
         self.draw_sphere(render_size, 20, 20)
 
         glPopMatrix()  # Restaura a matriz
@@ -121,7 +131,7 @@ class Renderer:
         gluSphere(quadric, radius, slices, stacks)
         gluDeleteQuadric(quadric)
 
-    def draw_spaceship(self, spaceship):
+    def draw_spaceship(self, spaceship, camera):
         """Desenha a nave espacial."""
         glPushMatrix()
         # Posiciona a nave no espaço
@@ -139,8 +149,13 @@ class Renderer:
         else:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
-        # Desenha uma pirâmide para representar a nave (em vez de um cubo)
+        # Desenha uma pirâmide para representar a nave
         self.draw_pyramid(50.0)
+        
+        # Desenha o nome do jogador sobre a nave
+        if spaceship.name:
+            self.draw_text_3d(spaceship.name, spaceship.position, camera)
+
         glPopMatrix()
 
     def draw_pyramid(self, size):
@@ -175,3 +190,59 @@ class Renderer:
         glVertex3f(half_size, 0.0, -half_size)
         glVertex3f(-half_size, 0.0, -half_size)
         glEnd()
+
+    def draw_text_3d(self, text, position, camera):
+        """Desenha o texto como uma textura no espaço 3D."""
+        # Renderiza o texto em uma superfície do Pygame
+        font = pygame.font.SysFont('Arial', 32)
+        text_surface = font.render(text, True, (255, 255, 255))
+        text_width, text_height = text_surface.get_size()
+        text_data = pygame.image.tostring(text_surface, "RGBA", True)
+
+        # Cria uma textura OpenGL a partir da superfície
+        texture_id = glGenTextures(1)
+        texture_id = int(texture_id)  # Converte para inteiro padrão do Python
+
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, text_width, text_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+        # Ativa blending para lidar com transparências
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_TEXTURE_2D)
+
+        # Salva a matriz atual e posiciona o texto
+        glPushMatrix()
+        glTranslatef(position[0], position[1] + 100, position[2])
+
+        # Alinha o texto com a câmera
+        glRotatef(-camera.yaw, 0, 1, 0)
+        glRotatef(-camera.pitch, 1, 0, 0)
+        glColor3f(1.0, 1.0, 1.0)
+
+        # Ajusta o tamanho do quad de acordo com a escala desejada
+        scale = 0.25  # Ajuste este valor para redimensionar o texto
+        width = text_width * scale
+        height = text_height * scale
+
+        # Desenha um quad com a textura do texto
+        glBegin(GL_QUADS)
+        glTexCoord2f(0, 0)
+        glVertex3f(-width / 2, -height / 2, 0)
+        glTexCoord2f(1, 0)
+        glVertex3f(width / 2, -height / 2, 0)
+        glTexCoord2f(1, 1)
+        glVertex3f(width / 2, height / 2, 0)
+        glTexCoord2f(0, 1)
+        glVertex3f(-width / 2, height / 2, 0)
+        glEnd()
+
+        # Restaura a matriz e desativa texturas e blending
+        glPopMatrix()
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_BLEND)
+
+        # Certifique-se de passar uma lista com o ID da textura
+        glDeleteTextures([texture_id])

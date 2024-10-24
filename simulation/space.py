@@ -4,18 +4,39 @@ from utils.helpers import Helpers
 
 class CelestialObject:
     """Classe para representar objetos celestiais como planetas, estrelas, buracos negros."""
-    def __init__(self, obj_type, position, mass, size, has_water=False):
+    def __init__(self, obj_type, position, mass, size, has_water=False, name=None):
         self.obj_type = obj_type  # Tipo do objeto (planeta, estrela, buraco negro, etc.)
         self.position = position  # Posição 3D do objeto
         self.mass = mass          # Massa do objeto (influencia na gravidade)
         self.size = size          # Tamanho físico do objeto
         self.has_water = has_water  # Indica se o planeta tem água
+        self.name = name          # Nome do corpo celeste (definido pelo jogador ou None)
+
+    def to_dict(self):
+        """Converte o objeto em um dicionário para facilitar o salvamento."""
+        return {
+            "obj_type": self.obj_type,
+            "position": self.position,
+            "mass": self.mass,
+            "size": self.size,
+            "has_water": self.has_water,
+            "name": self.name
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Cria um objeto CelestialObject a partir de um dicionário."""
+        return cls(
+            obj_type=data["obj_type"],
+            position=data["position"],
+            mass=data["mass"],
+            size=data["size"],
+            has_water=data.get("has_water", False),
+            name=data.get("name", None)
+        )
 
     def update(self):
         pass  # Implementar comportamento específico do objeto, se necessário
-
-    def draw(self):
-        pass  # Implementar renderização do objeto
 
 class Space:
     SECTOR_SIZE = 70000  # Tamanho do setor
@@ -116,6 +137,23 @@ class Space:
                     force_vector = [component * force_magnitude for component in direction_vector]
                     # Aplica a força na nave
                     spaceship.apply_force(force_vector)
+
+    def save_game_state(self):
+        """Salva o estado do jogo em formato JSON."""
+        game_state = {
+            "sectors": {
+                str(sector_coords): [obj.to_dict() for obj in objects]
+                for sector_coords, objects in self.sectors.items()
+            }
+        }
+        return game_state
+
+    def load_game_state(self, game_state):
+        """Carrega o estado do jogo a partir de um arquivo JSON."""
+        self.sectors = {
+            eval(sector_coords): [CelestialObject.from_dict(obj_data) for obj_data in objects]
+            for sector_coords, objects in game_state.get("sectors", {}).items()
+        }
 
     def remove_old_sectors(self, current_sector):
         """Remove setores antigos que estão longe da nave para manter o universo sob controle."""

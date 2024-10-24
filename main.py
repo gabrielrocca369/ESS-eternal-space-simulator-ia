@@ -3,9 +3,11 @@ import os
 import logging
 import time
 import pygame
+import json
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from utils.logger import GameLogger
 
 # Configura o logging para registrar erros no arquivo errorlog.txt
 logging.basicConfig(filename='errorlog.txt', level=logging.ERROR,
@@ -28,6 +30,9 @@ from simulation.space import Space
 from simulation.spaceship import Spaceship
 from visualization.render_3d import Renderer
 from visualization.camera import Camera
+
+# Inicializa o logger para salvar e carregar o progresso
+game_logger = GameLogger()
 
 def load_logo():
     """Carrega o logo do jogo (um .gif ou .png de uma galáxia)."""
@@ -59,6 +64,34 @@ def display_menu(screen, font, logo):
 
     # Atualiza a tela
     pygame.display.flip()
+
+def get_player_name(screen, font):
+    """Exibe uma tela para o jogador digitar seu nome."""
+    name = ""
+    input_active = True
+    instruction_text = font.render("Digite seu nome:", True, (255, 255, 255))
+
+    while input_active:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Pressiona Enter para finalizar a digitação
+                    input_active = False
+                elif event.key == pygame.K_BACKSPACE:  # Apaga o último caractere
+                    name = name[:-1]
+                else:
+                    name += event.unicode  # Adiciona o caractere digitado
+
+        # Renderiza o nome à medida que é digitado
+        screen.fill((0, 0, 0))
+        screen.blit(instruction_text, (screen.get_width() // 2 - 100, screen.get_height() // 2 - 50))
+        name_text = font.render(name, True, (255, 255, 255))
+        screen.blit(name_text, (screen.get_width() // 2 - 100, screen.get_height() // 2))
+        pygame.display.flip()
+
+    return name
 
 def display_instructions(screen, font):
     """Exibe as instruções de controle do teclado."""
@@ -141,6 +174,14 @@ def start_simulation():
                     elif event.key == pygame.K_ESCAPE and in_instructions:
                         in_instructions = False  # Volta ao menu se estiver nas instruções
 
+        # Carrega progresso salvo, se houver
+        progress = game_logger.load_progress()
+        if progress:
+            player_name = progress['player_name']
+        else:
+            # Solicita o nome do jogador se não houver progresso salvo
+            player_name = get_player_name(screen, font)
+
         # Reinicializa a janela para o modo OpenGL
         pygame.display.quit()
         pygame.display.init()
@@ -165,7 +206,18 @@ def start_simulation():
 
         # Inicializa o universo e a nave
         space = Space()
-        spaceship = Spaceship(max_speed=80000)
+        spaceship = Spaceship(name=player_name, max_speed=80000)
+        distance_traveled = 0
+        play_time = 0
+
+        if progress:
+            # Carrega o progresso salvo na nave e nos objetos
+            spaceship.position = progress['position']
+            spaceship.velocity = progress['velocity']
+            distance_traveled = progress['distance_traveled']
+            play_time = progress['play_time']
+            # Se você estiver salvando o estado do universo, carregue aqui
+            # space.load_game_state(progress['space_state'])
 
         # Inicializa o motor de renderização e a câmera
         renderer = Renderer()
@@ -181,13 +233,13 @@ def start_simulation():
             # Processa os eventos do Pygame
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    game_logger.save_progress(player_name, spaceship, distance_traveled, play_time)
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        # Chama a função para confirmar se o jogador quer voltar ao menu
+                        game_logger.save_progress(player_name, spaceship, distance_traveled, play_time)
                         confirm_exit = display_confirm_exit(screen, font)
                         if confirm_exit:
-                            # Retorna ao menu inicial
                             running = False
                             start_simulation()
                             return  # Encerra o loop atual
@@ -198,11 +250,13 @@ def start_simulation():
             # Calcula o tempo decorrido
             current_time = time.time()
             delta_time = current_time - last_time
+            play_time += delta_time
             last_time = current_time
 
             # Atualiza a física do universo e a posição da nave
             space.update(spaceship)
             spaceship.update(delta_time, keys)  # Passa delta_time e keys
+            distance_traveled += sum([abs(v * delta_time) for v in spaceship.velocity])
 
             # Atualiza a rotação da câmera
             camera.update_camera_rotation(keys, delta_time)
