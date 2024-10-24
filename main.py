@@ -174,14 +174,6 @@ def start_simulation():
                     elif event.key == pygame.K_ESCAPE and in_instructions:
                         in_instructions = False  # Volta ao menu se estiver nas instruções
 
-        # Carrega progresso salvo, se houver
-        progress = game_logger.load_progress()
-        if progress:
-            player_name = progress['player_name']
-        else:
-            # Solicita o nome do jogador se não houver progresso salvo
-            player_name = get_player_name(screen, font)
-
         # Reinicializa a janela para o modo OpenGL
         pygame.display.quit()
         pygame.display.init()
@@ -204,20 +196,25 @@ def start_simulation():
         pygame.event.clear()
         pygame.display.flip()
 
-        # Inicializa o universo e a nave
-        space = Space()
+        # No início do jogo, peça o nome do jogador
+        player_name = get_player_name(screen, font)
+
+        # Inicializa a nave com o nome do jogador
         spaceship = Spaceship(name=player_name, max_speed=80000)
+
+        # Inicializa o universo e variáveis de progresso
+        space = Space()
         distance_traveled = 0
         play_time = 0
 
+        # Carrega progresso salvo, se houver
+        progress = game_logger.load_progress()
         if progress:
-            # Carrega o progresso salvo na nave e nos objetos
-            spaceship.position = progress['position']
-            spaceship.velocity = progress['velocity']
-            distance_traveled = progress['distance_traveled']
-            play_time = progress['play_time']
-            # Se você estiver salvando o estado do universo, carregue aqui
-            # space.load_game_state(progress['space_state'])
+            player_name = progress.get('player_name', "Player1")
+            spaceship.position = progress.get('spaceship', {}).get('position', [0.0, 0.0, 0.0])
+            spaceship.velocity = progress.get('spaceship', {}).get('velocity', [0.0, 0.0, 0.0])
+            distance_traveled = progress.get('distance_traveled', 0)
+            play_time = progress.get('play_time', 0)
 
         # Inicializa o motor de renderização e a câmera
         renderer = Renderer()

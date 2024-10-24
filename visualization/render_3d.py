@@ -105,7 +105,7 @@ class Renderer:
         elif obj.obj_type == 'black_hole':
             # Buraco negro: esfera negra com disco de acreção
             glColor3f(0.0, 0.0, 0.0)  # Preto para o buraco negro
-            self.draw_sphere(obj.size / 100.0, 30, 30)
+            self.draw_sphere(obj.size / 200.0, 30, 30)
 
             # Disco de acreção em torno do buraco negro
             glColor3f(1.0, 0.5, 0.0)  # Laranja brilhante para o disco de acreção
@@ -150,7 +150,7 @@ class Renderer:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
         # Desenha uma pirâmide para representar a nave
-        self.draw_pyramid(50.0)
+        self.draw_pyramid(30.0)
         
         # Desenha o nome do jogador sobre a nave
         if spaceship.name:
@@ -223,7 +223,7 @@ class Renderer:
         glColor3f(1.0, 1.0, 1.0)
 
         # Ajusta o tamanho do quad de acordo com a escala desejada
-        scale = 0.25  # Ajuste este valor para redimensionar o texto
+        scale = 0.5  # Ajuste este valor para redimensionar o texto
         width = text_width * scale
         height = text_height * scale
 

@@ -3,7 +3,7 @@ from simulation.physics import Physics
 import math
 
 class Spaceship:
-    def __init__(self, name, max_speed=80000, mass=2000):
+    def __init__(self, name, max_speed=100000, mass=2000):
         self.name = name  # Nome do jogador, exibido sobre a nave
         self.position = [0.0, 0.0, 0.0]       # Posição inicial da nave no espaço 3D
         self.velocity = [0.0, 0.0, 0.0]       # Velocidade inicial da nave
@@ -37,7 +37,7 @@ class Spaceship:
         acceleration_value = 10000.0 * delta_time  # Valor ajustável para controlar a sensibilidade
 
         # Rotaciona a nave para esquerda e direita
-        rotation_speed = 2.0 * delta_time  # Velocidade de rotação
+        rotation_speed = 3.0 * delta_time  # Velocidade de rotação
         if keys[pygame.K_LEFT]:
             self.rotation_angle += rotation_speed
         if keys[pygame.K_RIGHT]:
