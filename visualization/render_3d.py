@@ -75,20 +75,39 @@ class Renderer:
 
     def draw_object(self, obj):
         """Desenha um objeto celestial como planeta, estrela ou buraco negro."""
-        # **Adicionado para depuração**
-        print(f"Desenhando objeto {obj.obj_type} na posição {obj.position}")
-
         glPushMatrix()  # Salva a matriz atual para restaurá-la mais tarde
         # Posiciona o objeto no espaço
         glTranslatef(float(obj.position[0]), float(obj.position[1]), float(obj.position[2]))
 
-        # Define a cor do objeto baseado no tipo
         if obj.obj_type == 'planet':
-            glColor3f(0.0, 0.5, 1.0)  # Azul para planetas
+            # Cor do planeta depende se tem água ou não
+            if obj.has_water:
+                glColor3f(0.0, 0.5, 1.0)  # Azul para planetas com água
+            else:
+                glColor3f(0.6, 0.4, 0.2)  # Marrom/cinza para planetas sem água
         elif obj.obj_type == 'star':
-            glColor3f(1.0, 1.0, 0.0)  # Amarelo para estrelas
+            # Estrela com brilho
+            glColor3f(1.0, 1.0, 0.0)  # Amarelo brilhante para estrelas
+            glEnable(GL_LIGHT1)
+            glLightfv(GL_LIGHT1, GL_POSITION, [0.0, 0.0, 0.0, 1.0])
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, [1.0, 1.0, 0.8, 1.0])
+            glLightfv(GL_LIGHT1, GL_SPECULAR, [1.0, 1.0, 0.8, 1.0])
         elif obj.obj_type == 'black_hole':
-            glColor3f(0.5, 0.0, 0.5)  # Roxo para buracos negros
+            # Buraco negro: esfera negra com disco de acreção
+            glColor3f(0.0, 0.0, 0.0)  # Preto para o buraco negro
+            self.draw_sphere(obj.size / 100.0, 30, 30)
+
+            # Disco de acreção em torno do buraco negro
+            glColor3f(1.0, 0.5, 0.0)  # Laranja brilhante para o disco de acreção
+            glBegin(GL_QUADS)
+            for i in range(0, 360, 10):
+                theta = math.radians(i)
+                next_theta = math.radians(i + 10)
+                glVertex3f(math.cos(theta) * obj.size, 0.0, math.sin(theta) * obj.size)
+                glVertex3f(math.cos(next_theta) * obj.size, 0.0, math.sin(next_theta) * obj.size)
+                glVertex3f(math.cos(next_theta) * (obj.size + 500), 0.0, math.sin(next_theta) * (obj.size + 500))
+                glVertex3f(math.cos(theta) * (obj.size + 500), 0.0, math.sin(theta) * (obj.size + 500))
+            glEnd()
 
         # Aumenta o tamanho dos objetos na renderização
         render_size = obj.size / 50.0  # Ajuste este valor para controlar o tamanho na tela
@@ -120,42 +139,39 @@ class Renderer:
         else:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
-        # Desenha um cubo para representar a nave
-        self.draw_cube(100.0)
+        # Desenha uma pirâmide para representar a nave (em vez de um cubo)
+        self.draw_pyramid(50.0)
         glPopMatrix()
 
-    def draw_cube(self, size):
-        """Desenha um cubo com o tamanho especificado."""
+    def draw_pyramid(self, size):
+        """Desenha uma pirâmide com a ponta para cima."""
         half_size = size / 2.0
-        glBegin(GL_QUADS)
+        glBegin(GL_TRIANGLES)
         # Face frontal
-        glVertex3f(-half_size, -half_size, half_size)
-        glVertex3f(half_size, -half_size, half_size)
-        glVertex3f(half_size, half_size, half_size)
-        glVertex3f(-half_size, half_size, half_size)
-        # Face traseira
-        glVertex3f(-half_size, -half_size, -half_size)
-        glVertex3f(-half_size, half_size, -half_size)
-        glVertex3f(half_size, half_size, -half_size)
-        glVertex3f(half_size, -half_size, -half_size)
-        # Face esquerda
-        glVertex3f(-half_size, -half_size, -half_size)
-        glVertex3f(-half_size, -half_size, half_size)
-        glVertex3f(-half_size, half_size, half_size)
-        glVertex3f(-half_size, half_size, -half_size)
+        glVertex3f(0.0, size, 0.0)  # Ponto no topo
+        glVertex3f(-half_size, 0.0, half_size)  # Base esquerda
+        glVertex3f(half_size, 0.0, half_size)  # Base direita
+
         # Face direita
-        glVertex3f(half_size, -half_size, -half_size)
-        glVertex3f(half_size, half_size, -half_size)
-        glVertex3f(half_size, half_size, half_size)
-        glVertex3f(half_size, -half_size, half_size)
-        # Face superior
-        glVertex3f(-half_size, half_size, -half_size)
-        glVertex3f(-half_size, half_size, half_size)
-        glVertex3f(half_size, half_size, half_size)
-        glVertex3f(half_size, half_size, -half_size)
-        # Face inferior
-        glVertex3f(-half_size, -half_size, -half_size)
-        glVertex3f(half_size, -half_size, -half_size)
-        glVertex3f(half_size, -half_size, half_size)
-        glVertex3f(-half_size, -half_size, half_size)
+        glVertex3f(0.0, size, 0.0)
+        glVertex3f(half_size, 0.0, half_size)
+        glVertex3f(half_size, 0.0, -half_size)
+
+        # Face traseira
+        glVertex3f(0.0, size, 0.0)
+        glVertex3f(half_size, 0.0, -half_size)
+        glVertex3f(-half_size, 0.0, -half_size)
+
+        # Face esquerda
+        glVertex3f(0.0, size, 0.0)
+        glVertex3f(-half_size, 0.0, -half_size)
+        glVertex3f(-half_size, 0.0, half_size)
+        glEnd()
+
+        # Desenha a base
+        glBegin(GL_QUADS)
+        glVertex3f(-half_size, 0.0, half_size)
+        glVertex3f(half_size, 0.0, half_size)
+        glVertex3f(half_size, 0.0, -half_size)
+        glVertex3f(-half_size, 0.0, -half_size)
         glEnd()

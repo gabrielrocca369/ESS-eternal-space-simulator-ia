@@ -29,19 +29,33 @@ from simulation.spaceship import Spaceship
 from visualization.render_3d import Renderer
 from visualization.camera import Camera
 
-def display_menu(screen, font):
-    """Exibe a tela inicial com as opções de jogo."""
+def load_logo():
+    """Carrega o logo do jogo (um .gif ou .png de uma galáxia)."""
+    logo = pygame.image.load("logo_galaxy.gif").convert_alpha()  # Logo da galáxia em pixel art
+    return pygame.transform.scale(logo, (300, 300))  # Ajusta o tamanho do logo
+
+def display_menu(screen, font, logo):
+    """Exibe a tela inicial com as opções de jogo, centralizando o logo e as opções."""
     screen.fill((0, 0, 0))  # Preenche a tela com preto
 
-    # Renderiza o texto na tela
+    # Renderiza o logo na parte superior, centralizado
+    logo_rect = logo.get_rect(center=(screen.get_width() // 2, 180))
+    screen.blit(logo, logo_rect)
+
+    # Renderiza o texto centralizado na tela
     title_text = font.render("Eternal Space Simulator", True, (255, 255, 255))
     new_game_text = font.render("New Game - Press Enter to Start", True, (255, 255, 255))
     instructions_text = font.render("Press K to See Keyboard Actions", True, (255, 255, 255))
 
-    # Posiciona o texto no centro da tela
-    screen.blit(title_text, (100, 100))
-    screen.blit(new_game_text, (100, 200))
-    screen.blit(instructions_text, (100, 300))
+    # Calcula a posição central para o texto
+    title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    new_game_rect = new_game_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
+    instructions_rect = instructions_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 150))
+
+    # Desenha os textos
+    screen.blit(title_text, title_rect)
+    screen.blit(new_game_text, new_game_rect)
+    screen.blit(instructions_text, instructions_rect)
 
     # Atualiza a tela
     pygame.display.flip()
@@ -63,7 +77,7 @@ def display_instructions(screen, font):
 
     for i, line in enumerate(instructions):
         instruction_text = font.render(line, True, (255, 255, 255))
-        screen.blit(instruction_text, (100, 100 + i * 40))  # Posiciona cada linha de instrução
+        screen.blit(instruction_text, (screen.get_width() // 2 - 150, 100 + i * 40))  # Centraliza cada linha
 
     # Atualiza a tela
     pygame.display.flip()
@@ -73,7 +87,7 @@ def display_confirm_exit(screen, font):
     screen.fill((0, 0, 0))  # Preenche a tela com preto
     # Renderiza a mensagem de confirmação
     message_text = font.render("Confirmar retorno ao menu? (Y/N)", True, (255, 255, 255))
-    screen.blit(message_text, (100, 100))
+    screen.blit(message_text, (screen.get_width() // 2 - 200, screen.get_height() // 2))
     pygame.display.flip()
 
     # Espera pelo input do jogador
@@ -94,9 +108,12 @@ def start_simulation():
     try:
         # Inicializa o pygame
         pygame.init()
-        display = (1280, 720)  # Alterado para resolução 720p
+        display = (1280, 720)  # Resolução 720p
         screen = pygame.display.set_mode(display)
         pygame.display.set_caption("Eternal Space Simulator")
+
+        # Carrega o logo
+        logo = load_logo()
 
         # Define a fonte para exibir o texto no menu
         font = pygame.font.SysFont("Arial", 30)
@@ -109,7 +126,7 @@ def start_simulation():
             if in_instructions:
                 display_instructions(screen, font)
             else:
-                display_menu(screen, font)
+                display_menu(screen, font, logo)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -146,12 +163,9 @@ def start_simulation():
         pygame.event.clear()
         pygame.display.flip()
 
-        # Define a fonte novamente após mudar para o modo OpenGL
-        font = pygame.font.SysFont("Arial", 30)
-
         # Inicializa o universo e a nave
         space = Space()
-        spaceship = Spaceship(max_speed=50000)
+        spaceship = Spaceship(max_speed=80000)
 
         # Inicializa o motor de renderização e a câmera
         renderer = Renderer()

@@ -4,11 +4,12 @@ from utils.helpers import Helpers
 
 class CelestialObject:
     """Classe para representar objetos celestiais como planetas, estrelas, buracos negros."""
-    def __init__(self, obj_type, position, mass, size):
+    def __init__(self, obj_type, position, mass, size, has_water=False):
         self.obj_type = obj_type  # Tipo do objeto (planeta, estrela, buraco negro, etc.)
         self.position = position  # Posição 3D do objeto
         self.mass = mass          # Massa do objeto (influencia na gravidade)
         self.size = size          # Tamanho físico do objeto
+        self.has_water = has_water  # Indica se o planeta tem água
 
     def update(self):
         pass  # Implementar comportamento específico do objeto, se necessário
@@ -17,7 +18,7 @@ class CelestialObject:
         pass  # Implementar renderização do objeto
 
 class Space:
-    SECTOR_SIZE = 50000  # Tamanho do setor
+    SECTOR_SIZE = 70000  # Tamanho do setor
     OBJECT_TYPES = ['planet', 'star', 'black_hole']  # Tipos de objetos celestiais
     GRAVITY_INFLUENCE_RADIUS = 10000  # Raio de influência gravitacional dos objetos
 
@@ -29,7 +30,7 @@ class Space:
     def generate_objects_in_sector(self, sector_coords):
         """Gera objetos celestiais dentro de um setor."""
         objects = []
-        num_objects = random.randint(10, 30)  # Ajuste o número de objetos por setor
+        num_objects = random.randint(9, 17)  # Ajuste o número de objetos por setor
         print(f"Gerando {num_objects} objetos no setor {sector_coords}")
         sector_position = (
             sector_coords[0] * self.SECTOR_SIZE,
@@ -46,10 +47,15 @@ class Space:
                 sector_position[2] + local_position[2]
             )
             mass = random.uniform(1e15, 1e18)  # Massa dos objetos
-            size = random.uniform(8000, 80000)  # Tamanho dos objetos
+            size = random.uniform(2000, 100000)  # Tamanho dos objetos
 
-            obj = CelestialObject(obj_type, position, mass, size)
-            print(f"Criado objeto {obj.obj_type} na posição {obj.position}")
+            # Atribuir aleatoriamente se um planeta tem água ou não
+            has_water = False
+            if obj_type == 'planet':
+                has_water = random.choice([True, False])  # 50% de chance de ter água
+
+            obj = CelestialObject(obj_type, position, mass, size, has_water)
+            print(f"Criado objeto {obj.obj_type} na posição {obj.position}, com água: {obj.has_water}")
             objects.append(obj)
 
         return objects

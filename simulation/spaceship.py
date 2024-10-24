@@ -3,7 +3,7 @@ from simulation.physics import Physics
 import math
 
 class Spaceship:
-    def __init__(self, max_speed=50000, mass=3000):
+    def __init__(self, max_speed=80000, mass=2000):
         self.position = [0.0, 0.0, 0.0]       # Posição inicial da nave no espaço 3D
         self.velocity = [0.0, 0.0, 0.0]       # Velocidade inicial da nave
         self.acceleration = [0.0, 0.0, 0.0]   # Aceleração inicial da nave
@@ -33,7 +33,7 @@ class Spaceship:
         self.acceleration = [0.0, 0.0, 0.0]
 
         # Define a aceleração básica da nave em função da entrada do usuário
-        acceleration_value = 5000.0 * delta_time  # Valor ajustável para controlar a sensibilidade
+        acceleration_value = 10000.0 * delta_time  # Valor ajustável para controlar a sensibilidade
 
         # Rotaciona a nave para esquerda e direita
         rotation_speed = 2.0 * delta_time  # Velocidade de rotação
