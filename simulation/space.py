@@ -41,7 +41,7 @@ class CelestialObject:
 class Space:
     SECTOR_SIZE = 70000  # Tamanho do setor
     OBJECT_TYPES = ['planet', 'star', 'black_hole']  # Tipos de objetos celestiais
-    GRAVITY_INFLUENCE_RADIUS = 10000  # Raio de influência gravitacional dos objetos
+    GRAVITY_INFLUENCE_RADIUS = 6000  # Raio de influência gravitacional dos objetos
 
     def __init__(self):
         self.sectors = {}  # Inicializa o dicionário de setores gerados
@@ -51,7 +51,7 @@ class Space:
     def generate_objects_in_sector(self, sector_coords):
         """Gera objetos celestiais dentro de um setor."""
         objects = []
-        num_objects = random.randint(9, 17)  # Ajuste o número de objetos por setor
+        num_objects = random.randint(7, 11)  # Ajuste o número de objetos por setor
         print(f"Gerando {num_objects} objetos no setor {sector_coords}")
         sector_position = (
             sector_coords[0] * self.SECTOR_SIZE,
@@ -68,7 +68,7 @@ class Space:
                 sector_position[2] + local_position[2]
             )
             mass = random.uniform(1e15, 1e18)  # Massa dos objetos
-            size = random.uniform(2000, 100000)  # Tamanho dos objetos
+            size = random.uniform(2000, 18000)  # Tamanho dos objetos
 
             # Atribuir aleatoriamente se um planeta tem água ou não
             has_water = False

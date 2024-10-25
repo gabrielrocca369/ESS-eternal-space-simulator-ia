@@ -1,7 +1,7 @@
 import math
 
 class Physics:
-    GRAVITY_CONSTANT = 6.67430e-11  # Constante gravitacional universal
+    GRAVITY_CONSTANT = 6.67430e-14  # Constante gravitacional universal reduzida
 
     @staticmethod
     def calculate_gravitational_force(mass1, mass2, distance):
@@ -26,6 +26,7 @@ class Physics:
         :param time_step: Intervalo de tempo (delta_time)
         :return: Novo vetor de velocidade [vx, vy, vz]
         """
+        acceleration = [a * 0.5 for a in acceleration]  # Reduz a aceleração
         return [
             velocity[0] + acceleration[0] * time_step,
             velocity[1] + acceleration[1] * time_step,
@@ -41,6 +42,7 @@ class Physics:
         :param time_step: Intervalo de tempo (delta_time)
         :return: Nova posição [x, y, z]
         """
+        velocity = [v * 0.7 for v in velocity]  # Reduz a influência da velocidade
         return [
             position[0] + velocity[0] * time_step,
             position[1] + velocity[1] * time_step,
@@ -81,6 +83,7 @@ class Physics:
         :param max_value: Valor máximo para o comprimento do vetor
         :return: Vetor limitado [x, y, z]
         """
+        max_value *= 0.8  # Limita ainda mais a velocidade máxim
         magnitude = math.sqrt(sum(comp ** 2 for comp in vector))
         if magnitude > max_value and magnitude != 0:
             return [comp * max_value / magnitude for comp in vector]

@@ -11,7 +11,7 @@ class Camera:
         self.up = up if up is not None else [0.0, 1.0, 0.0]
         self.yaw = 0.0    # Ângulo de rotação no eixo Y (esquerda/direita)
         self.pitch = 0.0  # Ângulo de inclinação no eixo X (cima/baixo)
-        self.offset_distance = 800.0  # Distância padrão atrás do alvo
+        self.offset_distance = 400.0  # Distância padrão atrás do alvo
 
     def normalize_vector(self, vector):
         """

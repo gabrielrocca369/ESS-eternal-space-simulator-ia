@@ -4,6 +4,7 @@ import logging
 import time
 import pygame
 import json
+import math
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -103,8 +104,8 @@ def display_instructions(screen, font):
         "S - Move Backward",
         "A - Move Left",
         "D - Move Right",
-        "Q - Move Up",
-        "E - Move Down",
+        "Q - Rotate Left",
+        "E - Rotate Right",
         "Press Esc to Go Back to Menu"
     ]
 
@@ -141,7 +142,10 @@ def start_simulation():
     try:
         # Inicializa o pygame
         pygame.init()
+        pygame.font.init()  # Inicializa o módulo de fontes do Pygame
         display = (1280, 720)  # Resolução 720p
+
+        # Durante o menu, não usamos OPENGL
         screen = pygame.display.set_mode(display)
         pygame.display.set_caption("Eternal Space Simulator")
 
@@ -174,17 +178,20 @@ def start_simulation():
                     elif event.key == pygame.K_ESCAPE and in_instructions:
                         in_instructions = False  # Volta ao menu se estiver nas instruções
 
+        # No início do jogo, peça o nome do jogador
+        player_name = get_player_name(screen, font)
+
         # Reinicializa a janela para o modo OpenGL
         pygame.display.quit()
         pygame.display.init()
-        screen = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+        screen = pygame.display.set_mode(display, DOUBLEBUF | OPENGL | FULLSCREEN)
         pygame.display.set_caption("Eternal Space Simulator")
 
         # Configura a projeção e o modelo OpenGL
         glViewport(0, 0, display[0], display[1])
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(75, (display[0] / display[1]), 0.1, 400000.0)  # Campo de visão ajustado para 75
+        gluPerspective(75, (display[0] / display[1]), 0.1, 500000.0)  # Campo de visão ajustado para 75
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         glClearColor(0.1, 0.1, 0.1, 1.0)
@@ -196,16 +203,13 @@ def start_simulation():
         pygame.event.clear()
         pygame.display.flip()
 
-        # No início do jogo, peça o nome do jogador
-        player_name = get_player_name(screen, font)
-
         # Inicializa a nave com o nome do jogador
-        spaceship = Spaceship(name=player_name, max_speed=80000)
+        spaceship = Spaceship(name=player_name, max_speed=120000)
 
         # Inicializa o universo e variáveis de progresso
         space = Space()
-        distance_traveled = 0
-        play_time = 0
+        distance_traveled = 0.0
+        play_time = 0.0
 
         # Carrega progresso salvo, se houver
         progress = game_logger.load_progress()
@@ -213,11 +217,11 @@ def start_simulation():
             player_name = progress.get('player_name', "Player1")
             spaceship.position = progress.get('spaceship', {}).get('position', [0.0, 0.0, 0.0])
             spaceship.velocity = progress.get('spaceship', {}).get('velocity', [0.0, 0.0, 0.0])
-            distance_traveled = progress.get('distance_traveled', 0)
-            play_time = progress.get('play_time', 0)
+            distance_traveled = progress.get('distance_traveled', 0.0)
+            play_time = progress.get('play_time', 0.0)
 
         # Inicializa o motor de renderização e a câmera
-        renderer = Renderer()
+        renderer = Renderer(display)  # Passa 'display' para o Renderer
         camera = Camera()
 
         # Definir o tempo entre atualizações (time_step) para física e renderização
@@ -247,13 +251,18 @@ def start_simulation():
             # Calcula o tempo decorrido
             current_time = time.time()
             delta_time = current_time - last_time
-            play_time += delta_time
             last_time = current_time
+
+            # Atualiza o tempo de jogo
+            play_time += delta_time
 
             # Atualiza a física do universo e a posição da nave
             space.update(spaceship)
             spaceship.update(delta_time, keys)  # Passa delta_time e keys
-            distance_traveled += sum([abs(v * delta_time) for v in spaceship.velocity])
+
+            # Calcula a distância percorrida
+            velocity_magnitude = math.sqrt(sum([v ** 2 for v in spaceship.velocity]))
+            distance_traveled += velocity_magnitude * delta_time
 
             # Atualiza a rotação da câmera
             camera.update_camera_rotation(keys, delta_time)
@@ -262,7 +271,7 @@ def start_simulation():
             camera.follow_target(spaceship.position, spaceship.direction)
 
             # Renderiza o estado atual do universo, da nave e da câmera
-            renderer.render(space, spaceship, camera)
+            renderer.render(space, spaceship, camera, play_time, distance_traveled)
 
             # Atualiza a tela
             pygame.display.flip()

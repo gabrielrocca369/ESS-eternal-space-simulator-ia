@@ -6,13 +6,14 @@ import math  # Import necessário para cálculos matemáticos
 import random  # Import necessário para gerar o starfield
 
 class Renderer:
-    def __init__(self):
+    def __init__(self, display):
         """Inicializa parâmetros do renderizador."""
+        self.display = display  # Armazena o tamanho da tela
         # Configura a cor de limpeza (fundo preto)
         glClearColor(0.1, 0.1, 0.1, 1.0)
         # Ativa o teste de profundidade
         glEnable(GL_DEPTH_TEST)
-        self.starfield = self.generate_starfield(500)  # Gera 500 estrelas de fundo
+        self.starfield = self.generate_starfield(1000)  # Gera 1000 estrelas de fundo
 
         # Configura a iluminação
         glEnable(GL_LIGHTING)
@@ -36,7 +37,7 @@ class Renderer:
             stars.append((x, y, z))
         return stars
 
-    def render(self, space, spaceship, camera):
+    def render(self, space, spaceship, camera, play_time, distance_traveled):
         """Renderiza os objetos do espaço e a nave."""
         # Limpa a tela e o buffer de profundidade
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -48,15 +49,8 @@ class Renderer:
         camera_params = camera.get_view_matrix()
         gluLookAt(*camera_params)
 
-        # Verifica se a câmera está posicionada corretamente
-        print(f"Câmera: {camera_params}")
-
         # Renderiza as estrelas de fundo
         self.draw_starfield()
-
-        # Verifica se há objetos para renderizar
-        total_objects = sum(len(objects) for objects in space.sectors.values())
-        print(f"Total de objetos para renderizar: {total_objects}")
 
         # Renderiza os objetos celestiais em todos os setores
         for sector_coords, objects in space.sectors.items():
@@ -66,8 +60,8 @@ class Renderer:
         # Renderiza a nave espacial
         self.draw_spaceship(spaceship, camera)
 
-        # Renderiza o nome do jogador sobre a nave
-        self.draw_text_3d(spaceship.name, spaceship.position, camera)
+        # Renderiza o HUD com o tempo de jogo e a distância percorrida
+        self.render_hud(play_time, distance_traveled)
 
         # Atualiza a tela
         pygame.display.flip()
@@ -105,7 +99,7 @@ class Renderer:
         elif obj.obj_type == 'black_hole':
             # Buraco negro: esfera negra com disco de acreção
             glColor3f(0.0, 0.0, 0.0)  # Preto para o buraco negro
-            self.draw_sphere(obj.size / 200.0, 30, 30)
+            self.draw_sphere(obj.size / 600.0, 30, 30)
 
             # Disco de acreção em torno do buraco negro
             glColor3f(1.0, 0.5, 0.0)  # Laranja brilhante para o disco de acreção
@@ -120,7 +114,7 @@ class Renderer:
             glEnd()
 
         # Aumenta o tamanho dos objetos na renderização
-        render_size = obj.size / 100.0  # Ajuste este valor para controlar o tamanho na tela
+        render_size = obj.size / 200.0  # Ajuste este valor para controlar o tamanho na tela
         self.draw_sphere(render_size, 20, 20)
 
         glPopMatrix()  # Restaura a matriz
@@ -134,8 +128,12 @@ class Renderer:
     def draw_spaceship(self, spaceship, camera):
         """Desenha a nave espacial."""
         glPushMatrix()
+
         # Posiciona a nave no espaço
         glTranslatef(float(spaceship.position[0]), float(spaceship.position[1]), float(spaceship.position[2]))
+
+        # Aplica a rotação da nave para que ela aponte para a direção correta
+        glRotatef(math.degrees(spaceship.rotation_angle), 0, 1, 0)  # Rotaciona no eixo Y
 
         # Calcula a velocidade atual da nave
         speed = math.sqrt(sum(v ** 2 for v in spaceship.velocity))
@@ -143,52 +141,57 @@ class Renderer:
         # Define um limiar para considerar a nave parada
         speed_threshold = 0.1  # Ajuste conforme necessário
 
-        # Verifica se a nave está em movimento
+        # Verifica se a nave está em movimento e aplica a cor apropriada
         if speed > speed_threshold:
             glColor3f(0.5, 1.0, 0.5)  # Verde claro quando em movimento
         else:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
-        # Desenha uma pirâmide para representar a nave
-        self.draw_pyramid(30.0)
-        
+        # Desenha a pirâmide representando a nave
+        self.draw_pyramid(20.0)
+
         # Desenha o nome do jogador sobre a nave
         if spaceship.name:
-            self.draw_text_3d(spaceship.name, spaceship.position, camera)
+            # Ajusta a altura para o texto ficar acima da nave
+            text_position = [spaceship.position[0], spaceship.position[1] + 50, spaceship.position[2]]
+            self.draw_text_3d(spaceship.name, text_position, camera)
 
         glPopMatrix()
 
     def draw_pyramid(self, size):
-        """Desenha uma pirâmide com a ponta para cima."""
+        """Desenha uma pirâmide com a ponta para frente (eixo Z negativo)."""
         half_size = size / 2.0
+
         glBegin(GL_TRIANGLES)
-        # Face frontal
-        glVertex3f(0.0, size, 0.0)  # Ponto no topo
-        glVertex3f(-half_size, 0.0, half_size)  # Base esquerda
-        glVertex3f(half_size, 0.0, half_size)  # Base direita
+
+        # Face inferior
+        glVertex3f(0.0, 0.0, -size)  # Ponto no topo (ponta da pirâmide)
+        glVertex3f(-half_size, -half_size, 0.0)  # Base inferior esquerda
+        glVertex3f(half_size, -half_size, 0.0)   # Base inferior direita
 
         # Face direita
-        glVertex3f(0.0, size, 0.0)
-        glVertex3f(half_size, 0.0, half_size)
-        glVertex3f(half_size, 0.0, -half_size)
+        glVertex3f(0.0, 0.0, -size)  # Ponto no topo
+        glVertex3f(half_size, -half_size, 0.0)  # Base direita inferior
+        glVertex3f(half_size, half_size, 0.0)   # Base direita superior
 
-        # Face traseira
-        glVertex3f(0.0, size, 0.0)
-        glVertex3f(half_size, 0.0, -half_size)
-        glVertex3f(-half_size, 0.0, -half_size)
+        # Face superior
+        glVertex3f(0.0, 0.0, -size)  # Ponto no topo
+        glVertex3f(half_size, half_size, 0.0)   # Base superior direita
+        glVertex3f(-half_size, half_size, 0.0)  # Base superior esquerda
 
         # Face esquerda
-        glVertex3f(0.0, size, 0.0)
-        glVertex3f(-half_size, 0.0, -half_size)
-        glVertex3f(-half_size, 0.0, half_size)
+        glVertex3f(0.0, 0.0, -size)  # Ponto no topo
+        glVertex3f(-half_size, half_size, 0.0)  # Base esquerda superior
+        glVertex3f(-half_size, -half_size, 0.0) # Base esquerda inferior
+
         glEnd()
 
-        # Desenha a base
+        # Desenha a base (quadrado)
         glBegin(GL_QUADS)
-        glVertex3f(-half_size, 0.0, half_size)
-        glVertex3f(half_size, 0.0, half_size)
-        glVertex3f(half_size, 0.0, -half_size)
-        glVertex3f(-half_size, 0.0, -half_size)
+        glVertex3f(-half_size, -half_size, 0.0)  # Base inferior esquerda
+        glVertex3f(half_size, -half_size, 0.0)   # Base inferior direita
+        glVertex3f(half_size, half_size, 0.0)    # Base superior direita
+        glVertex3f(-half_size, half_size, 0.0)   # Base superior esquerda
         glEnd()
 
     def draw_text_3d(self, text, position, camera):
@@ -215,7 +218,7 @@ class Renderer:
 
         # Salva a matriz atual e posiciona o texto
         glPushMatrix()
-        glTranslatef(position[0], position[1] + 100, position[2])
+        glTranslatef(position[0], position[1], position[2])
 
         # Alinha o texto com a câmera
         glRotatef(-camera.yaw, 0, 1, 0)
@@ -246,3 +249,56 @@ class Renderer:
 
         # Certifique-se de passar uma lista com o ID da textura
         glDeleteTextures([texture_id])
+
+    def render_hud(self, play_time, distance_traveled):
+        """Renderiza o HUD com o tempo de jogo e a distância percorrida."""
+        # Salva as matrizes atuais
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        # Configura uma projeção ortográfica
+        gluOrtho2D(0, self.display[0], 0, self.display[1])
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        # Desabilita o depth test e iluminação para o HUD
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_LIGHTING)
+
+        # Desenha um fundo preto semi-transparente para o HUD
+        glColor4f(0.0, 0.0, 0.0, 0.7)  # Preto com 70% de transparência
+        glBegin(GL_QUADS)
+        glVertex2f(5, self.display[1] - 65)    # Esquerda, Top
+        glVertex2f(300, self.display[1] - 65)  # Direita, Top
+        glVertex2f(300, self.display[1] - 5)    # Direita, Bottom
+        glVertex2f(5, self.display[1] - 5)      # Esquerda, Bottom
+        glEnd()
+
+        # Configura a cor para o texto (azul)
+        glColor3f(0.0, 0.0, 1.0)  # Azul
+
+        # Renderiza o texto usando a fonte do Pygame
+        font = pygame.font.SysFont('Arial', 24)
+
+        # Prepara as superfícies de texto
+        time_text = font.render(f"Tempo: {int(play_time)}s", True, (255, 255, 255)) # Azul
+        distance_text = font.render(f"Distância: {int(distance_traveled)} unidades", True, (255, 255, 255))
+
+        # Converte as superfícies em texturas OpenGL
+        texts = [(time_text, (10, self.display[1] - 30)),
+                 (distance_text, (10, self.display[1] - 60))]
+
+        for text_surface, position in texts:
+            text_data = pygame.image.tostring(text_surface, "RGBA", True)
+            glRasterPos2i(position[0], position[1])
+            glDrawPixels(text_surface.get_width(), text_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+        # Restaura as matrizes e configurações anteriores
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
