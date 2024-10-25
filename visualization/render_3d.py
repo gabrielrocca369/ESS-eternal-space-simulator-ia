@@ -13,7 +13,7 @@ class Renderer:
         glClearColor(0.1, 0.1, 0.1, 1.0)
         # Ativa o teste de profundidade
         glEnable(GL_DEPTH_TEST)
-        self.starfield = self.generate_starfield(1000)  # Gera 1000 estrelas de fundo
+        self.starfield = self.generate_starfield(5000)  # Gera 5000 estrelas de fundo
 
         # Configura a iluminação
         glEnable(GL_LIGHTING)
@@ -41,10 +41,9 @@ class Renderer:
         """Renderiza os objetos do espaço e a nave."""
         # Limpa a tela e o buffer de profundidade
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        # Carrega a matriz de identidade
         glLoadIdentity()
 
+        # Carrega a matriz de identidade
         # Posiciona a câmera usando os parâmetros retornados por get_view_matrix
         camera_params = camera.get_view_matrix()
         gluLookAt(*camera_params)
@@ -62,9 +61,6 @@ class Renderer:
 
         # Renderiza o HUD com o tempo de jogo e a distância percorrida
         self.render_hud(play_time, distance_traveled)
-
-        # Atualiza a tela
-        pygame.display.flip()
 
     def draw_starfield(self):
         """Desenha as estrelas de fundo."""
@@ -99,7 +95,7 @@ class Renderer:
         elif obj.obj_type == 'black_hole':
             # Buraco negro: esfera negra com disco de acreção
             glColor3f(0.0, 0.0, 0.0)  # Preto para o buraco negro
-            self.draw_sphere(obj.size / 600.0, 30, 30)
+            self.draw_sphere(obj.size / 500.0, 30, 30)
 
             # Disco de acreção em torno do buraco negro
             glColor3f(1.0, 0.5, 0.0)  # Laranja brilhante para o disco de acreção
@@ -114,7 +110,7 @@ class Renderer:
             glEnd()
 
         # Aumenta o tamanho dos objetos na renderização
-        render_size = obj.size / 200.0  # Ajuste este valor para controlar o tamanho na tela
+        render_size = obj.size / 100.0  # Ajuste este valor para controlar o tamanho na tela
         self.draw_sphere(render_size, 20, 20)
 
         glPopMatrix()  # Restaura a matriz
@@ -133,7 +129,7 @@ class Renderer:
         glTranslatef(float(spaceship.position[0]), float(spaceship.position[1]), float(spaceship.position[2]))
 
         # Aplica a rotação da nave para que ela aponte para a direção correta
-        glRotatef(math.degrees(spaceship.rotation_angle), 0, 1, 0)  # Rotaciona no eixo Y
+        glRotatef(spaceship.rotation_angle, 0, 1, 0)  # Rotaciona no eixo Y
 
         # Calcula a velocidade atual da nave
         speed = math.sqrt(sum(v ** 2 for v in spaceship.velocity))
@@ -148,7 +144,7 @@ class Renderer:
             glColor3f(0.0, 0.5, 1.0)  # Azul quando parada
 
         # Desenha a pirâmide representando a nave
-        self.draw_pyramid(20.0)
+        self.draw_pyramid(30.0)
 
         # Desenha o nome do jogador sobre a nave
         if spaceship.name:
@@ -164,7 +160,7 @@ class Renderer:
 
         glBegin(GL_TRIANGLES)
 
-        # Face inferior
+        # Face frontal
         glVertex3f(0.0, 0.0, -size)  # Ponto no topo (ponta da pirâmide)
         glVertex3f(-half_size, -half_size, 0.0)  # Base inferior esquerda
         glVertex3f(half_size, -half_size, 0.0)   # Base inferior direita
@@ -195,17 +191,15 @@ class Renderer:
         glEnd()
 
     def draw_text_3d(self, text, position, camera):
-        """Desenha o texto como uma textura no espaço 3D."""
+        """Desenha o texto como uma textura no espaço 3D usando billboarding."""
         # Renderiza o texto em uma superfície do Pygame
-        font = pygame.font.SysFont('Arial', 32)
-        text_surface = font.render(text, True, (255, 255, 255))
+        font = pygame.font.SysFont('Arial', 48)
+        text_surface = font.render(text, True, (255, 255, 255), (0, 0, 0))
         text_width, text_height = text_surface.get_size()
         text_data = pygame.image.tostring(text_surface, "RGBA", True)
 
         # Cria uma textura OpenGL a partir da superfície
         texture_id = glGenTextures(1)
-        texture_id = int(texture_id)  # Converte para inteiro padrão do Python
-
         glBindTexture(GL_TEXTURE_2D, texture_id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
@@ -220,9 +214,23 @@ class Renderer:
         glPushMatrix()
         glTranslatef(position[0], position[1], position[2])
 
-        # Alinha o texto com a câmera
-        glRotatef(-camera.yaw, 0, 1, 0)
-        glRotatef(-camera.pitch, 1, 0, 0)
+        # Implementa billboarding: faz o quad enfrentar a câmera
+        # Obtém a direção da câmera
+        camera_position = camera.position
+        camera_look_at = camera.look_at
+
+        # Calcula o vetor de direção da câmera
+        dir_x = camera_position[0] - position[0]
+        dir_y = camera_position[1] - position[1]
+        dir_z = camera_position[2] - position[2]
+
+        # Calcula o ângulo de rotação em torno do eixo Y
+        angle = math.degrees(math.atan2(dir_x, dir_z))
+
+        # Aplica a rotação para que o texto enfrente a câmera
+        glRotatef(angle, 0, 1, 0)
+
+        # Define a cor para o texto (branco)
         glColor3f(1.0, 1.0, 1.0)
 
         # Ajusta o tamanho do quad de acordo com a escala desejada
@@ -247,7 +255,7 @@ class Renderer:
         glDisable(GL_TEXTURE_2D)
         glDisable(GL_BLEND)
 
-        # Certifique-se de passar uma lista com o ID da textura
+        # Deleta a textura para evitar vazamentos de memória
         glDeleteTextures([texture_id])
 
     def render_hud(self, play_time, distance_traveled):
@@ -267,7 +275,7 @@ class Renderer:
         glDisable(GL_LIGHTING)
 
         # Desenha um fundo preto semi-transparente para o HUD
-        glColor4f(0.0, 0.0, 0.0, 0.7)  # Preto com 70% de transparência
+        glColor4f(0.0, 0.0, 0.0, 0.6)  # Preto com 60% de transparência
         glBegin(GL_QUADS)
         glVertex2f(5, self.display[1] - 65)    # Esquerda, Top
         glVertex2f(300, self.display[1] - 65)  # Direita, Top
@@ -275,14 +283,14 @@ class Renderer:
         glVertex2f(5, self.display[1] - 5)      # Esquerda, Bottom
         glEnd()
 
-        # Configura a cor para o texto (azul)
-        glColor3f(0.0, 0.0, 1.0)  # Azul
+        # Configura a cor para o texto (branco)
+        glColor3f(1.0, 1.0, 1.0)  # Branco
 
         # Renderiza o texto usando a fonte do Pygame
         font = pygame.font.SysFont('Arial', 24)
 
         # Prepara as superfícies de texto
-        time_text = font.render(f"Tempo: {int(play_time)}s", True, (255, 255, 255)) # Azul
+        time_text = font.render(f"Tempo: {int(play_time)}s", True, (255, 255, 255))  # Branco
         distance_text = font.render(f"Distância: {int(distance_traveled)} unidades", True, (255, 255, 255))
 
         # Converte as superfícies em texturas OpenGL
@@ -291,8 +299,49 @@ class Renderer:
 
         for text_surface, position in texts:
             text_data = pygame.image.tostring(text_surface, "RGBA", True)
-            glRasterPos2i(position[0], position[1])
-            glDrawPixels(text_surface.get_width(), text_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+            text_width, text_height = text_surface.get_size()
+            texture_id = glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, text_width, text_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+            # Ativa blending para transparência
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glEnable(GL_TEXTURE_2D)
+
+            # Salva a matriz atual e posiciona o texto
+            glPushMatrix()
+            glTranslatef(position[0], position[1], 0)
+
+            # Define a cor para o texto (branco)
+            glColor3f(1.0, 1.0, 1.0)
+
+            # Ajusta o tamanho do quad de acordo com a escala desejada
+            scale = 0.5  # Ajuste este valor para redimensionar o texto
+            width = text_width * scale
+            height = text_height * scale
+
+            # Desenha um quad com a textura do texto
+            glBegin(GL_QUADS)
+            glTexCoord2f(0, 0)
+            glVertex2f(-width / 2, -height / 2)
+            glTexCoord2f(1, 0)
+            glVertex2f(width / 2, -height / 2)
+            glTexCoord2f(1, 1)
+            glVertex2f(width / 2, height / 2)
+            glTexCoord2f(0, 1)
+            glVertex2f(-width / 2, height / 2)
+            glEnd()
+
+            # Restaura a matriz e desativa texturas e blending
+            glPopMatrix()
+            glDisable(GL_TEXTURE_2D)
+            glDisable(GL_BLEND)
+
+            # Deleta a textura para evitar vazamentos de memória
+            glDeleteTextures([texture_id])
 
         # Restaura as matrizes e configurações anteriores
         glEnable(GL_DEPTH_TEST)

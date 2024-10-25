@@ -3,16 +3,16 @@ from simulation.physics import Physics
 import math
 
 class Spaceship:
-    def __init__(self, name, max_speed=120000, mass=4000):
+    def __init__(self, name, max_speed=150000, mass=500):
         self.name = name  # Nome do jogador, exibido sobre a nave
         self.position = [0.0, 0.0, 0.0]       # Posição inicial da nave no espaço 3D
         self.velocity = [0.0, 0.0, 0.0]       # Velocidade inicial da nave
         self.acceleration = [0.0, 0.0, 0.0]   # Aceleração inicial da nave
         self.direction = [0.0, 0.0, -1.0]     # Direção inicial da nave (eixo Z negativo)
-        self.rotation_angle = 0.0             # Ângulo de rotação da nave
+        self.rotation_angle = 0.0             # Ângulo de rotação da nave em graus
         self.max_speed = max_speed            # Velocidade máxima permitida para a nave
         self.mass = mass                      # Massa da nave, influencia a inércia e gravidade
-        self.drag_coefficient = 0.07           # Coeficiente de arrasto
+        self.drag_coefficient = 0.05          # Coeficiente de arrasto
 
     def apply_force(self, force_vector):
         """
@@ -29,26 +29,28 @@ class Spaceship:
 
     def handle_input(self, keys, delta_time):
         """Lida com a entrada do teclado para controlar a nave."""
-    
-        # Reseta a aceleração no início do método
-        self.acceleration = [0.0, 0.0, 0.0]
 
         # Define a aceleração básica da nave em função da entrada do usuário
         acceleration_value = 10000.0 * delta_time  # Valor ajustável para controlar a sensibilidade
 
-        # Rotaciona a nave para esquerda e direita
-        rotation_speed = 10 * delta_time  # Velocidade de rotação
+        # Define a velocidade de rotação em graus por segundo
+        rotation_speed = 100.0 * delta_time  # Ajuste conforme necessário
 
-        if keys[pygame.K_LEFT]:
-            self.rotation_angle += rotation_speed
-        if keys[pygame.K_RIGHT]:
-            self.rotation_angle -= rotation_speed
+        # Rotaciona a nave para a esquerda e direita usando Q e E
+        if keys[pygame.K_q]:
+            self.rotation_angle += rotation_speed  # Rotaciona para a esquerda
+        if keys[pygame.K_e]:
+            self.rotation_angle -= rotation_speed  # Rotaciona para a direita
+
+        # Normaliza o ângulo de rotação para manter entre 0 e 360 graus
+        self.rotation_angle = self.rotation_angle % 360
 
         # Atualiza a direção da nave com base no ângulo de rotação
+        rad_angle = math.radians(self.rotation_angle)  # Converte para radianos
         self.direction = [
-            math.sin(self.rotation_angle),  # Eixo X
-            0.0,                           # Eixo Y permanece inalterado
-            -math.cos(self.rotation_angle)  # Eixo Z (para frente/trás)
+            math.sin(rad_angle),  # Eixo X
+            0.0,                  # Eixo Y permanece inalterado
+            -math.cos(rad_angle)  # Eixo Z (para frente/trás)
         ]
 
         # Movimenta a nave para frente e para trás com base na direção (eixo Z)
@@ -63,36 +65,41 @@ class Spaceship:
             self.acceleration[2] -= self.direction[2] * acceleration_value
             print("Movendo para trás")
 
-        # Lateral esquerda/direita sem rotacionar a nave
-        lateral_acceleration = 4000.0 * delta_time  # Ajuste fino para movimentos laterais
+        # Movimenta a nave lateralmente sem rotacionar
+        lateral_acceleration = 5000.0 * delta_time  # Ajuste fino para movimentos laterais
         if keys[pygame.K_a]:
-            self.acceleration[0] -= math.cos(self.rotation_angle) * lateral_acceleration  # Lateral para esquerda
-            self.acceleration[2] -= math.sin(self.rotation_angle) * lateral_acceleration
+            # Calcula a aceleração lateral para a esquerda
+            self.acceleration[0] -= math.cos(rad_angle) * lateral_acceleration
+            self.acceleration[2] -= math.sin(rad_angle) * lateral_acceleration
+            print("Movendo para a esquerda")
         if keys[pygame.K_d]:
-            self.acceleration[0] += math.cos(self.rotation_angle) * lateral_acceleration  # Lateral para direita
-            self.acceleration[2] += math.sin(self.rotation_angle) * lateral_acceleration
+            # Calcula a aceleração lateral para a direita
+            self.acceleration[0] += math.cos(rad_angle) * lateral_acceleration
+            self.acceleration[2] += math.sin(rad_angle) * lateral_acceleration
+            print("Movendo para a direita")
 
-        # Movimenta a nave para cima e para baixo (eixo Y)
-        if keys[pygame.K_q]:
+        # Movimenta a nave para cima e para baixo (eixo Y) com novas teclas R e F
+        if keys[pygame.K_r]:
             self.acceleration[1] += acceleration_value  # Sobe a nave
             print("Movendo para cima")
-        if keys[pygame.K_e]:
+        if keys[pygame.K_f]:
             self.acceleration[1] -= acceleration_value  # Desce a nave
             print("Movendo para baixo")
 
         # Aplicando resistência (drag) ao movimento para evitar velocidade infinita
-        self.apply_drag(delta_time)
+        # Removido do handle_input para evitar aplicação dupla
+        # self.apply_drag(delta_time)
 
     def update(self, time_step, keys):
         """Atualiza a velocidade, posição e direção da nave com base na aceleração e no tempo."""
-    
+
         # Lida com a entrada do teclado para alterar a aceleração e rotação da nave
         self.handle_input(keys, time_step)
 
         # Atualiza a velocidade com base na aceleração atual
         self.velocity = Physics.calculate_velocity(self.velocity, self.acceleration, time_step)
 
-        # Aplica o arrasto para desacelerar a nave (simulando resistência no espaço)
+        # Aplicando resistência (drag) ao movimento para evitar velocidade infinita
         self.apply_drag(time_step)
 
         # Limita a velocidade máxima da nave para evitar ultrapassar o limite
@@ -112,7 +119,7 @@ class Spaceship:
     def apply_drag(self, time_step):
         """Aplica uma força de arrasto (drag) para desacelerar a nave."""
         drag_force = [-v * self.drag_coefficient for v in self.velocity]
-    
+
         # Aplica a força de arrasto à velocidade
         self.velocity = [
             self.velocity[0] + drag_force[0] * time_step,
@@ -124,9 +131,9 @@ class Spaceship:
         """Desenha o nome do jogador acima da nave."""
         # Defina a posição ligeiramente acima da nave para o texto
         name_position = [self.position[0], self.position[1] + 200.0, self.position[2]]
-        
+
         # Renderiza o nome do jogador
-        renderer.draw_text_3d(self.player_name, name_position, camera)
+        renderer.draw_text_3d(self.name, name_position, camera)  # Corrigido para self.name
 
     def to_dict(self):
         return {

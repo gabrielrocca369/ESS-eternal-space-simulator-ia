@@ -51,16 +51,19 @@ def display_menu(screen, font, logo):
     # Renderiza o texto centralizado na tela
     title_text = font.render("Eternal Space Simulator", True, (255, 255, 255))
     new_game_text = font.render("New Game - Press Enter to Start", True, (255, 255, 255))
+    reset_game_text = font.render("Reset Progress - Press N", True, (255, 255, 255))
     instructions_text = font.render("Press K to See Keyboard Actions", True, (255, 255, 255))
 
     # Calcula a posição central para o texto
-    title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-    new_game_rect = new_game_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
-    instructions_rect = instructions_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 150))
+    title_rect = title_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
+    new_game_rect = new_game_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    reset_game_rect = reset_game_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 50))
+    instructions_rect = instructions_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 100))
 
     # Desenha os textos
     screen.blit(title_text, title_rect)
     screen.blit(new_game_text, new_game_rect)
+    screen.blit(reset_game_text, reset_game_rect)
     screen.blit(instructions_text, instructions_rect)
 
     # Atualiza a tela
@@ -100,13 +103,15 @@ def display_instructions(screen, font):
 
     # Renderiza o texto das instruções
     instructions = [
-        "W - Move Forward",
-        "S - Move Backward",
-        "A - Move Left",
-        "D - Move Right",
+        "W - Forward",
+        "S - Backward",
+        "A - Left",
+        "D - Right",
         "Q - Rotate Left",
         "E - Rotate Right",
-        "Press Esc to Go Back to Menu"
+        "R - Up",
+        "F - Down"
+        "Press Esc to freeze, then Y/N to Go Back to Menu"
     ]
 
     for i, line in enumerate(instructions):
@@ -155,6 +160,9 @@ def start_simulation():
         # Define a fonte para exibir o texto no menu
         font = pygame.font.SysFont("Arial", 30)
 
+        # Inicializa o logger para salvar e carregar o progresso
+        game_logger = GameLogger()
+
         # Exibe o menu inicial
         in_menu = True
         in_instructions = False
@@ -173,6 +181,11 @@ def start_simulation():
                     if event.key == pygame.K_RETURN:  # Pressiona Enter para iniciar o jogo
                         in_menu = False
                         in_instructions = False
+                    elif event.key == pygame.K_n:  # Pressiona N para resetar o progresso
+                        game_logger.reset_progress()
+                        print("Progresso resetado. Iniciando um novo jogo.")
+                        # Reinicia o jogo após resetar
+                        in_menu = False
                     elif event.key == pygame.K_k:  # Pressiona K para ver as instruções
                         in_instructions = True
                     elif event.key == pygame.K_ESCAPE and in_instructions:
@@ -191,7 +204,7 @@ def start_simulation():
         glViewport(0, 0, display[0], display[1])
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(75, (display[0] / display[1]), 0.1, 500000.0)  # Campo de visão ajustado para 75
+        gluPerspective(75, (display[0] / display[1]), 0.1, 600000.0)  # Campo de visão ajustado para 75
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         glClearColor(0.1, 0.1, 0.1, 1.0)
@@ -248,6 +261,18 @@ def start_simulation():
             # Captura os inputs do teclado
             keys = pygame.key.get_pressed()
 
+            # Filtra apenas as teclas relevantes para movimentação e rotação
+            relevant_keys = {
+                pygame.K_w: keys[pygame.K_w],
+                pygame.K_a: keys[pygame.K_a],
+                pygame.K_s: keys[pygame.K_s],
+                pygame.K_d: keys[pygame.K_d],
+                pygame.K_q: keys[pygame.K_q],
+                pygame.K_e: keys[pygame.K_e],
+                pygame.K_r: keys[pygame.K_r],  # Movimentação para cima
+                pygame.K_f: keys[pygame.K_f],  # Movimentação para baixo
+            }
+
             # Calcula o tempo decorrido
             current_time = time.time()
             delta_time = current_time - last_time
@@ -258,14 +283,11 @@ def start_simulation():
 
             # Atualiza a física do universo e a posição da nave
             space.update(spaceship)
-            spaceship.update(delta_time, keys)  # Passa delta_time e keys
+            spaceship.update(delta_time, relevant_keys)  # Passa delta_time e apenas as teclas relevantes
 
             # Calcula a distância percorrida
             velocity_magnitude = math.sqrt(sum([v ** 2 for v in spaceship.velocity]))
             distance_traveled += velocity_magnitude * delta_time
-
-            # Atualiza a rotação da câmera
-            camera.update_camera_rotation(keys, delta_time)
 
             # A câmera segue a nave com suavidade
             camera.follow_target(spaceship.position, spaceship.direction)

@@ -61,3 +61,22 @@ class GameLogger:
         else:
             logging.warning(f"Arquivo de progresso {save_path} não encontrado.")
         return None
+
+    def reset_progress(self, save_name=None):
+        """
+        Reseta o progresso do jogo apagando o arquivo de salvamento.
+        :param save_name: Nome do arquivo de salvamento (opcional)
+        """
+        if save_name is None:
+            save_path = self.save_file
+        else:
+            save_path = Path(f"{save_name}.json")
+
+        try:
+            if save_path.exists():
+                save_path.unlink()  # Remove o arquivo
+                logging.info(f"Progresso do jogo resetado com sucesso em {save_path}.")
+            else:
+                logging.info(f"Nenhum arquivo de progresso encontrado para resetar em {save_path}.")
+        except Exception as e:
+            logging.error(f"Falha ao resetar o progresso do jogo em {save_path}: {e}")
